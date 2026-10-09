@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: sqlite:////data/nexgene.db
+      SECRET_KEY: ${SECRET_KEY:-nexgene-local-development-secret-only}
+      DEV_MODE: ${DEV_MODE:-true}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      GENOMIC_DATABASE_URL: sqlite:////data/nexgene_genomic.db
+      GENOMIC_PROVIDER_ID: ${GENOMIC_PROVIDER_ID:-development-genomics-provider}
+      GENOMIC_PROVIDER_KEY: ${GENOMIC_PROVIDER_KEY:-}
+      LIVE_CONTEXT_ENABLED: ${LIVE_CONTEXT_ENABLED:-true}
+      EVIDENCE_LIVE_ENABLED: ${EVIDENCE_LIVE_ENABLED:-true}
+      NCBI_EMAIL: ${NCBI_EMAIL:-nexgene-local@example.invalid}
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
+      CROSSREF_MAILTO: ${CROSSREF_MAILTO:-nexgene-local@example.invalid}
+    ports:
+      - "8000:8000"
+    volumes:
+      - nexgene_data:/data
+    restart: unless-stopped
+volumes:
+  nexgene_data:
