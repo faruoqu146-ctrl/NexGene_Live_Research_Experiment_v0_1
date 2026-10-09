@@ -4,7 +4,7 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 COPY backend /app/backend
 # Reassemble main.py if shipped as parts (GitHub push size workaround)
-RUN if [ ! -f /app/backend/app/main.py ] && [ -f /app/backend/app/main_part_00.py ]; then \
+RUN if [ ! -f /app/backend/app/main.py ] && ls /app/backend/app/main_part_*.py >/dev/null 2>&1; then \
       cat /app/backend/app/main_part_*.py > /app/backend/app/main.py; \
     fi
 COPY mobile /app/mobile
