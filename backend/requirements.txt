@@ -1,0 +1,9 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+sqlalchemy==2.0.43
+python-jose==3.5.0
+passlib==1.7.4
+pydantic==2.11.7
+pytest==8.4.1
+httpx==0.28.1
+google-auth==2.40.3

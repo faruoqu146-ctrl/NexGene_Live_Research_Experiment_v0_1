@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: nexgene-live-research
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DEV_MODE
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:////tmp/nexgene.db
+      - key: GENOMIC_DATABASE_URL
+        value: sqlite:////tmp/nexgene_genomic.db
+      - key: CLINICAL_DATABASE_URL
+        value: sqlite:////tmp/nexgene_clinical.db
+      - key: EVIDENCE_LIVE_ENABLED
+        value: "true"
+      - key: LIVE_CONTEXT_ENABLED
+        value: "true"
+      - key: NCBI_EMAIL
+        sync: false
+      - key: NCBI_API_KEY
+        sync: false
+      - key: CROSSREF_MAILTO
+        sync: false
