@@ -18,6 +18,15 @@ def _to_aware(dt):
         return dt.replace(tzinfo=timezone.utc)
     return dt
 
+def _safe_verify(password: str, password_hash: str) -> bool:
+    """Never let passlib/base64 errors become 500s during login."""
+    if not password_hash or not isinstance(password_hash, str):
+        return False
+    try:
+        return bool(pwd.verify(password, password_hash))
+    except Exception:
+        return False
+
 '''
 
 if "_to_aware" not in src:
@@ -26,15 +35,45 @@ if "_to_aware" not in src:
         "def now():\n    return datetime.now(timezone.utc)\n" + helper,
         1,
     )
+elif "_safe_verify" not in src:
+    src = src.replace(
+        "def _to_aware(dt):",
+        helper.strip().split("def _to_aware(dt):", 1)[0] + "def _to_aware(dt):",
+        1,
+    )
+    # If that failed to insert _safe_verify, inject after _to_aware block end is hard;
+    # fall through to simple insert near get_session.
+    if "_safe_verify" not in src:
+        src = src.replace(
+            "def get_session(request: Request, s: Session):",
+            "def _safe_verify(password: str, password_hash: str) -> bool:\n"
+            "    if not password_hash or not isinstance(password_hash, str):\n"
+            "        return False\n"
+            "    try:\n"
+            "        return bool(pwd.verify(password, password_hash))\n"
+            "    except Exception:\n"
+            "        return False\n\n\n"
+            "def get_session(request: Request, s: Session):",
+            1,
+        )
 
 src = src.replace("st.expires_at < now()", "_to_aware(st.expires_at) < now()")
 src = src.replace("row.expires_at < now()", "_to_aware(row.expires_at) < now()")
 
-# Free-tier safe hashing in DEV_MODE (was 600k — often times out)
 src = src.replace(
     "pbkdf2_sha256__default_rounds=600000",
     "pbkdf2_sha256__default_rounds=(80000 if DEV_MODE else 600000)",
     1,
+)
+
+# Harden login/register password checks
+src = src.replace(
+    "pwd.verify(x.password, DUMMY_PASSWORD_HASH)",
+    "_safe_verify(x.password, DUMMY_PASSWORD_HASH)",
+)
+src = src.replace(
+    "if not pwd.verify(x.password, u.password_hash):",
+    "if not _safe_verify(x.password, u.password_hash):",
 )
 
 needle = 'DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./nexgene.db")'
@@ -47,15 +86,10 @@ if needle in src and 'replace("postgres://"' not in src:
         1,
     )
 
-# Same for clinical/genomic if present
-for key in ("CLINICAL_DATABASE_URL", "GENOMIC_DATABASE_URL"):
-    n = f'{key} = os.getenv("{key}"' 
-    # skip complex rewrite; main uses separate vars rarely as postgres on free tier
-
 if src == orig:
     print("WARN: no changes applied")
 else:
     p.write_text(src, encoding="utf-8")
     print("patched OK")
+    print("safe_verify", "_safe_verify" in src)
     print("to_aware", src.count("_to_aware"))
-    print("rounds_dev80k", "80000 if DEV_MODE" in src)
